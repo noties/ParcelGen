@@ -1,0 +1,6 @@
+apply plugin: 'java'
+apply from: '../gradle_maven_jar_publish.gradle'
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+}
