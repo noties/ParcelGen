@@ -2,7 +2,7 @@
 
 This project combines Java Annotation Processing & AST modification to generate `Parcelable` boilerplate code before compilation. The main aim of this project was to explore undocumented Java AST modification.
 
-This library does not bring any runtimes to your project - all code is generated before compilation.
+This library does not bring any runtimes to your project - all code is generated before compilation. Changes occur only in annotated object.
 
 ## Setup
 Add dependencies to you project:
