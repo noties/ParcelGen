@@ -12,4 +12,12 @@ class ParcelableItem {
         this.name = name;
         this.type = type;
     }
+
+    @Override
+    public String toString() {
+        return "ParcelableItem{" +
+                "name='" + name + '\'' +
+                ", type=" + type +
+                '}';
+    }
 }

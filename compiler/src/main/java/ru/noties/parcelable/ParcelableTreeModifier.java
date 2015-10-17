@@ -42,12 +42,15 @@ class ParcelableTreeModifier {
 
     final ASTHelper mASTHelper;
 
+    final JCTree.JCExpression mParcelableType;
+
     private ParcelableTreeModifier(ParcelableLogger logger, Trees trees, TreeMaker treeMaker, Names names, Elements elements) {
         this.mLogger = logger;
         this.mTrees = trees;
         this.mTreeMaker = treeMaker;
         this.mElements = elements;
         this.mASTHelper = new ASTHelper(mTreeMaker, names);
+        this.mParcelableType = mASTHelper.getType("android.os", "Parcelable");
     }
 
     boolean modify(ParcelableData data) {

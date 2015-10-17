@@ -16,6 +16,10 @@ public enum ParcelableType {
     ENUM,
     ARRAY,
     PARCELABLE,
-    SERIALIZABLE
+    SERIALIZABLE,
+
+    CHAR_SEQUENCE,
+    BUNDLE,
+    TYPED_LIST
 
 }

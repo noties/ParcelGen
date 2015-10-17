@@ -20,6 +20,14 @@ import javax.tools.Diagnostic;
  */
 class ParcelableDataParser {
 
+    static final String ANDROID_OS_BUNDLE       = "android.os.Bundle";
+    static final String ANDROID_OS_PARCELABLE   = "android.os.Parcelable";
+    static final String JAVA_IO_SERIALIZABLE    = "java.io.Serializable";
+    static final String JAVA_LANG_CHAR_SEQUENCE = "java.lang.CharSequence";
+    static final String JAVA_LANG_ENUM          = "java.lang.Enum";
+    static final String JAVA_LANG_STRING        = "java.lang.String";
+    static final String JAVA_UTIL_LIST          = "java.util.List";
+
     final ParcelableLogger mLogger;
     final Types mTypes;
     final Elements mElements;
@@ -71,18 +79,24 @@ class ParcelableDataParser {
             type = convertType(typeMirror);
 
             // check if field's type is annotated with parcelable
-            if (type == null && isParcelableAnnotationPresent(encl)) {
+            if (type == null && isParcelableAnnotationPresent(typeMirror)) {
                 type = ParcelableType.PARCELABLE;
             }
 
             if (type == null) {
-                mLogger.log(Diagnostic.Kind.NOTE, "Could not parse `%s`. It won't be included in modified `%s`", typeMirror, typeElement);
+                mLogger.log(Diagnostic.Kind.NOTE, "Could not parse `%s`. " +
+                        "It won't be included in modified `%s`", typeMirror, typeElement);
                 continue;
             }
 
             if (isArray
-                    && (type == ParcelableType.ENUM || type == ParcelableType.SERIALIZABLE)) {
-                mLogger.log(Diagnostic.Kind.NOTE, "There is not support for arrays of enums or Serializable objects. Field: %s (%s) in class: %s", name, encl, typeElement);
+                    && (type == ParcelableType.ENUM
+                            || type == ParcelableType.SERIALIZABLE
+                            || type == ParcelableType.TYPED_LIST
+                            || type == ParcelableType.BUNDLE)
+            ) {
+                mLogger.log(Diagnostic.Kind.NOTE, "There is not support for arrays of Enum, " +
+                        "Serializable, Bundle or List objects. Field: %s (%s) in class: %s", name, encl, typeElement);
                 continue;
             }
 
@@ -127,19 +141,32 @@ class ParcelableDataParser {
             case DECLARED:
                 // might be - String, Enum, Parcelable, Serializable?
                 final String str = mirror.toString();
-                if ("java.lang.String".equals(str)) {
+                if (JAVA_LANG_STRING.equals(str)) {
                     return ParcelableType.STRING;
+                }
+
+                if (isSubtype(mirror, JAVA_LANG_CHAR_SEQUENCE)) {
+                    return ParcelableType.CHAR_SEQUENCE;
+                }
+
+                if (ANDROID_OS_BUNDLE.equalsIgnoreCase(str)) {
+                    return ParcelableType.BUNDLE;
+                }
+
+                // check if it's a list
+                if (isParcelableList(mirror)) {
+                    return ParcelableType.TYPED_LIST;
                 }
 
                 if (isEnum(mirror)) {
                     return ParcelableType.ENUM;
                 }
 
-                if (isSubtype(mirror, "android.os.Parcelable")) {
+                if (isSubtype(mirror, ANDROID_OS_PARCELABLE)) {
                     return ParcelableType.PARCELABLE;
                 }
 
-                if (isSubtype(mirror, "java.io.Serializable")) {
+                if (isSubtype(mirror, JAVA_IO_SERIALIZABLE)) {
                     return ParcelableType.SERIALIZABLE;
                 }
 
@@ -151,13 +178,7 @@ class ParcelableDataParser {
         }
     }
 
-    private boolean isParcelableAnnotationPresent(Element field) {
-
-        TypeMirror mirror = field.asType();
-
-        if (mirror.getKind() == TypeKind.ARRAY) {
-            mirror = ((ArrayType) mirror).getComponentType();
-        }
+    private boolean isParcelableAnnotationPresent(TypeMirror mirror) {
 
         if (!(mirror instanceof DeclaredType)) {
             return false;
@@ -172,6 +193,32 @@ class ParcelableDataParser {
         }
 
         return false;
+    }
+
+    private boolean isParcelableList(TypeMirror typeMirror) {
+
+        if (!(typeMirror instanceof DeclaredType)) {
+            return false;
+        }
+
+        final TypeMirror erasedMirror = mTypes.erasure(typeMirror);
+        final String erasure = erasedMirror.toString();
+
+        if (!erasure.startsWith(JAVA_UTIL_LIST)) {
+            return false;
+        }
+
+        final DeclaredType declaredType = (DeclaredType) typeMirror;
+        List<? extends TypeMirror> typeArguments = declaredType.getTypeArguments();
+        if (typeArguments == null
+                || typeArguments.size() != 1) {
+            return false;
+        }
+
+        final TypeMirror listType = typeArguments.get(0);
+
+        return isSubtype(listType, ANDROID_OS_PARCELABLE) || isParcelableAnnotationPresent(listType);
+
     }
 
     private boolean isEnum(TypeMirror mirror) {
@@ -189,7 +236,7 @@ class ParcelableDataParser {
         }
         final TypeMirror superMirror = ((TypeElement) element).getSuperclass();
 
-        return superMirror.toString().startsWith("java.lang.Enum");
+        return superMirror.toString().startsWith(JAVA_LANG_ENUM);
     }
 
     private boolean isSubtype(TypeMirror typeMirror, String toCheck) {

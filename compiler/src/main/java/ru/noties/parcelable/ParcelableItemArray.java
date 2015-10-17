@@ -11,4 +11,13 @@ class ParcelableItemArray extends ParcelableItem {
         super(name, type);
         this.arrayType = arrayType;
     }
+
+    @Override
+    public String toString() {
+        return "ParcelableItemArray{" +
+                "name='" + name + '\'' +
+                ", type=" + type +
+                ", arrayType=" + arrayType +
+                '}';
+    }
 }
