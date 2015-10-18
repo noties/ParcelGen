@@ -1,5 +1,7 @@
 # ParcelGen
 
+[![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-ParcelGen-brightgreen.svg?style=flat)](http://android-arsenal.com/details/1/2644)
+
 This project combines Java Annotation Processing & AST modification to generate `Parcelable` boilerplate code before compilation. The main aim of this project was to explore undocumented Java AST modification.
 
 This library does not bring any runtimes to your project - all code is generated before compilation. Changes occur only in annotated object.
@@ -7,8 +9,8 @@ This library does not bring any runtimes to your project - all code is generated
 ## Setup
 Add dependencies to you project:
 ```gradle
-compile 'ru.noties:parcel-gen:1.0.0'
-apt 'ru.noties:parcel-compiler:1.0.0'
+compile 'ru.noties:parcel-gen:1.1.0'
+apt 'ru.noties:parcel-compiler:1.1.0'
 ```
 Annotate a class that should be `Parcelable` with `@ru.noties.parcelable.ParcelGen`.
 
@@ -20,9 +22,15 @@ Annotate a class that should be `Parcelable` with `@ru.noties.parcelable.ParcelG
 * double
 * boolean
 * String
-* Enum (no array support)
-* Serializable (no array support)
-* Parcelable
+* Enum (**no array support**)
+* Serializable (**no array support**)
+* Parcelable (**with** array & List or ArrayList support)
+* CharSequence
+* List & ArrayList
+
+### Changelog v1.1.0
+* Added calls to super if parent is annotated with `@PacelGen`
+* Added more supported types (CharSequence, Lists)
 
 ### Drawbacks
 As long as IDE would not know that an object will *magically* become a `Parcelable` after compilation it will not let you use it as it's one. There are two possibilities:
