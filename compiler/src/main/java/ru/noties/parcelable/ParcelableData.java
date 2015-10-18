@@ -12,9 +12,11 @@ class ParcelableData {
 
     final Element element;
     final List<ParcelableItem> items;
+    final boolean shouldCallSuper;
 
-    ParcelableData(Element element, List<ParcelableItem> items) {
+    ParcelableData(Element element, List<ParcelableItem> items, boolean shouldCallSuper) {
         this.element = element;
         this.items = Collections.unmodifiableList(items);
+        this.shouldCallSuper = shouldCallSuper;
     }
 }

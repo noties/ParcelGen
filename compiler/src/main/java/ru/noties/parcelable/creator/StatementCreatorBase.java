@@ -22,7 +22,7 @@ abstract class StatementCreatorBase implements StatementCreator {
                 treeMaker.Apply(
                         List.<JCTree.JCExpression>nil(),
                         treeMaker.Select(parcel, astHelper.getName(getReadFromParcelMethodCallName(isArray))),
-                        List.<JCTree.JCExpression>nil()
+                        getReadMethodCallParameters(astHelper, varName, isArray)
                 )
         );
         return List.of((JCTree.JCStatement)treeMaker.Exec(expression));
@@ -44,5 +44,9 @@ abstract class StatementCreatorBase implements StatementCreator {
 
     protected List<JCTree.JCExpression> getWriteMethodCallParameters(TreeMaker treeMaker, Name varName, JCTree.JCExpression flags, boolean isArray) {
         return List.of((JCTree.JCExpression) treeMaker.Ident(varName));
+    }
+
+    protected List<JCTree.JCExpression> getReadMethodCallParameters(ASTHelper astHelper, String varName, boolean isArray) {
+        return List.nil();
     }
 }

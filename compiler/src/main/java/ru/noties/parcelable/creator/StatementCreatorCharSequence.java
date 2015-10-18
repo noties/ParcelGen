@@ -176,6 +176,16 @@ class StatementCreatorCharSequence implements StatementCreator {
                 null
         );
 
+        final JCTree.JCStatement writeLength = treeMaker.Exec(
+                treeMaker.Apply(
+                        List.<JCTree.JCExpression>nil(),
+                        treeMaker.Select(parcel, astHelper.getName("writeInt")),
+                        List.of(
+                                (JCTree.JCExpression) treeMaker.Select(item, astHelper.getName("length"))
+                        )
+                )
+        );
+
         final JCTree.JCStatement forLoop = treeMaker.ForeachLoop(
                 loopVar,
                 item,
@@ -192,7 +202,7 @@ class StatementCreatorCharSequence implements StatementCreator {
 
         final JCTree.JCStatement ifNotNull = treeMaker.Block(
                 0,
-                List.of(forLoop)
+                List.of(writeLength, forLoop)
         );
 
         final JCTree.JCStatement ifBlock = treeMaker.If(

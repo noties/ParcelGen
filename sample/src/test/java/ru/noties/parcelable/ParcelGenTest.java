@@ -1,7 +1,13 @@
 package ru.noties.parcelable;
 
+import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.text.Spannable;
+import android.text.Spanned;
+import android.text.style.StrikethroughSpan;
+import android.text.style.SuperscriptSpan;
+import android.text.style.UnderlineSpan;
 
 import junit.framework.TestCase;
 
@@ -18,6 +24,7 @@ import ru.noties.parcelable.obj.SomeAnnotatedParcelable;
 import ru.noties.parcelable.obj.SomeEnum;
 import ru.noties.parcelable.obj.SomeOtherAnnotatedParcelable;
 import ru.noties.parcelable.obj.SomeParcelable;
+import ru.noties.parcelable.obj.SomeParcelableSibling;
 
 /**
  * Created by Dimitry Ivanov on 12.10.2015.
@@ -39,9 +46,9 @@ public class ParcelGenTest extends TestCase {
     @Test
     public void testBytes() {
         mParcelable
-                .setSomeByte((byte)2)
+                .setSomeByte((byte) 2)
                 .setSomeByteArray(new byte[]{3, 4, 1});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -49,7 +56,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeInt(33)
                 .setSomeIntArray(new int[]{11, 99, 101, 0, -19});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -57,7 +64,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeLong(4L)
                 .setSomeLongArray(new long[]{13, -7, Long.MAX_VALUE});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -65,7 +72,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeFloat(66.F)
                 .setSomeFloatArray(new float[]{33.3F, .0F, -16.F, 77.1F});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -73,7 +80,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeDouble(10.4D)
                 .setSomeDoubleArray(new double[]{12.D, .99D, 99.9999D, -100.D});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -81,7 +88,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeBool(true)
                 .setSomeBoolArray(new boolean[]{true, false, false, false, true});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -89,14 +96,14 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeString("someString it is")
                 .setSomeStringArray(new String[]{"one", "eleven", "fifty five", "zero", "HEllo!"});
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
     public void testEnums() {
         mParcelable
                 .setSomeEnum(SomeEnum.DUNNO);
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -104,7 +111,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeEnum(SomeEnum.FALSE)
                 .setSomeOtherEnum(SomeEnum.TRUE);
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -116,7 +123,7 @@ public class ParcelGenTest extends TestCase {
                         new SomeParcelable().setSomeInt(-99),
                         new SomeParcelable().setSomeInt(19999)
                 });
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
     @Test
@@ -128,25 +135,76 @@ public class ParcelGenTest extends TestCase {
                         new SomeOtherAnnotatedParcelable().setSomeLong(-8),
                         new SomeOtherAnnotatedParcelable().setSomeLong(Long.MIN_VALUE)
                 });
-        assertParcelable();
+        assertParcelable(mParcelable);
     }
 
-    private void assertParcelable() {
+    // this test is failing & I'm not sure why...
+    // Seems that SpannableString.equals() is not returning true as expected
+    @Test
+    public void testCharSequence() {
+
+        final Spannable.Factory factory = Spannable.Factory.getInstance();
+
+        final Spannable single = factory.newSpannable("Hello Single Spannable");
+        single.setSpan(new UnderlineSpan(), 0, single.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        final Spannable s1 = factory.newSpannable("S1");
+        s1.setSpan(new SuperscriptSpan(), 0, s1.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        final Spannable s2 = factory.newSpannable("S@_dskfjsjdhfkjf");
+        s2.setSpan(new StrikethroughSpan(), 0, s2.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        final SomeParcelableSibling sibling = new SomeParcelableSibling()
+                .setCharSequence(single)
+                .setCharSequenceArray(new CharSequence[] { s1, s2 });
+
+        assertParcelable(sibling);
+    }
+
+    @Test
+    public void testBundle() {
+
+        // no support for arrays..
+        final Bundle bundle = new Bundle();
+        bundle.putString("string", "some string");
+        bundle.putInt("int", 123);
+        bundle.putLong("long", 999L);
+        bundle.putFloat("asddd", .000001F);
+
+        final SomeParcelableSibling sibling = new SomeParcelableSibling()
+                .setBundle(bundle);
+
+        assertParcelable(sibling);
+    }
+
+    @Test
+    public void testTransient() {
+        throw new IllegalStateException("Not implemented");
+    }
+
+    @Test
+    public void testSuperCall() {
+        throw new IllegalStateException("Not implemented");
+    }
+
+    private void assertParcelable(Object p) {
 
         final Parcel in = Parcel.obtain();
-        ((Parcelable) mParcelable).writeToParcel(in, 0);
+        ((Parcelable) p).writeToParcel(in, 0);
         final byte[] bytes = in.marshall();
-        in.recycle();
 
         final Parcel out = Parcel.obtain();
         out.unmarshall(bytes, 0, bytes.length);
         out.setDataPosition(0);
 
-        final SomeAnnotatedParcelable unparcelled = callCreator(mParcelable, out);
+        final Object unparcelled = callCreator(p, out);
 
-        out.recycle();
-
-        assertTrue(mParcelable.equals(unparcelled));
+        try {
+            assertTrue(String.format("not equals, in: %s, out: %s", p, unparcelled), p.equals(unparcelled));
+        } finally {
+            in.recycle();
+            out.recycle();
+        }
     }
 
     private <T> T callCreator(T object, Parcel parcel) {

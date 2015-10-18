@@ -66,19 +66,17 @@ class ParcelableTreeModifier {
         final Statements statements = buildStatements(mASTHelper, data);
 
         final JCTree classTree = (JCTree) mTrees.getTree(data.element);
-        classTree.accept(new ParcelableVisitor(data, statements, false));
+        classTree.accept(new ParcelableVisitor(statements, data.shouldCallSuper));
 
         return true;
     }
 
     private class ParcelableVisitor extends TreeTranslator {
 
-        private final ParcelableData mData;
         private final Statements mStatements;
         private final boolean mCallSuper;
 
-        ParcelableVisitor(ParcelableData data, Statements statements, boolean callSuper) {
-            this.mData = data;
+        ParcelableVisitor(Statements statements, boolean callSuper) {
             this.mStatements = statements;
             this.mCallSuper = callSuper;
         }
@@ -250,6 +248,25 @@ class ParcelableTreeModifier {
             // check if we already have a `writeToParcel` method & remove it if exists
             mASTHelper.removeMethodIfExists(jcClassDecl, "writeToParcel");
 
+            List<JCTree.JCStatement> statements = List.nil();
+
+            // check if we should call super.writeToParcel()
+            if (mCallSuper) {
+                final JCTree.JCStatement superCall = mTreeMaker.Exec(
+                        mTreeMaker.Apply(
+                                List.<JCTree.JCExpression>nil(),
+                                mTreeMaker.Select(mTreeMaker.Ident(mASTHelper.getName("super")), mASTHelper.getName("writeToParcel")),
+                                List.of(
+                                        (JCTree.JCExpression) mTreeMaker.Ident(mASTHelper.getName(WRITE_PARCEL_VAR_NAME)),
+                                        mTreeMaker.Ident(mASTHelper.getName(WRITE_FLAGS_VAR_NAME))
+                                )
+                        )
+                );
+                statements = statements.append(superCall);
+            }
+
+            statements = statements.appendList(mStatements.writeStatements);
+
             final JCTree.JCVariableDecl varDest = mTreeMaker.VarDef(
                     mASTHelper.getModifiers(),
                     mASTHelper.getName(WRITE_PARCEL_VAR_NAME),
@@ -271,7 +288,7 @@ class ParcelableTreeModifier {
                     List.<JCTree.JCTypeParameter>nil(),
                     List.<JCTree.JCVariableDecl>of(varDest, varFlags),
                     List.<JCTree.JCExpression>nil(),
-                    mTreeMaker.Block(0L, mStatements.writeStatements),
+                    mTreeMaker.Block(0L, statements),
                     null
             );
 

@@ -6,6 +6,7 @@ import java.util.List;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
@@ -65,6 +66,11 @@ class ParcelableDataParser {
                 continue;
             }
 
+            // skip field if it's marked as transient
+            if (encl.getModifiers().contains(Modifier.TRANSIENT)) {
+                continue;
+            }
+
             typeMirror = encl.asType();
             isArray = false;
 
@@ -78,11 +84,6 @@ class ParcelableDataParser {
 
             type = convertType(typeMirror);
 
-            // check if field's type is annotated with parcelable
-            if (type == null && isParcelableAnnotationPresent(typeMirror)) {
-                type = ParcelableType.PARCELABLE;
-            }
-
             if (type == null) {
                 mLogger.log(Diagnostic.Kind.NOTE, "Could not parse `%s`. " +
                         "It won't be included in modified `%s`", typeMirror, typeElement);
@@ -93,6 +94,7 @@ class ParcelableDataParser {
                     && (type == ParcelableType.ENUM
                             || type == ParcelableType.SERIALIZABLE
                             || type == ParcelableType.TYPED_LIST
+                            || type == ParcelableType.LIST
                             || type == ParcelableType.BUNDLE)
             ) {
                 mLogger.log(Diagnostic.Kind.NOTE, "There is not support for arrays of Enum, " +
@@ -113,7 +115,7 @@ class ParcelableDataParser {
             return null;
         }
 
-        return new ParcelableData(element, items);
+        return new ParcelableData(element, items, shouldCallSuper(typeElement));
     }
 
     private ParcelableType convertType(TypeMirror mirror) {
@@ -158,6 +160,10 @@ class ParcelableDataParser {
                     return ParcelableType.TYPED_LIST;
                 }
 
+                if (isList(mirror)) {
+                    return ParcelableType.LIST;
+                }
+
                 if (isEnum(mirror)) {
                     return ParcelableType.ENUM;
                 }
@@ -170,8 +176,11 @@ class ParcelableDataParser {
                     return ParcelableType.SERIALIZABLE;
                 }
 
-                return null;
+                if (isParcelableAnnotationPresent(mirror)) {
+                    return ParcelableType.PARCELABLE;
+                }
 
+                return ParcelableType.OBJECT;
 
             default:
                 return null;
@@ -197,14 +206,7 @@ class ParcelableDataParser {
 
     private boolean isParcelableList(TypeMirror typeMirror) {
 
-        if (!(typeMirror instanceof DeclaredType)) {
-            return false;
-        }
-
-        final TypeMirror erasedMirror = mTypes.erasure(typeMirror);
-        final String erasure = erasedMirror.toString();
-
-        if (!erasure.startsWith(JAVA_UTIL_LIST)) {
+        if (!isList(typeMirror)) {
             return false;
         }
 
@@ -219,6 +221,17 @@ class ParcelableDataParser {
 
         return isSubtype(listType, ANDROID_OS_PARCELABLE) || isParcelableAnnotationPresent(listType);
 
+    }
+
+    private boolean isList(TypeMirror typeMirror) {
+        if (!(typeMirror instanceof DeclaredType)) {
+            return false;
+        }
+
+        final TypeMirror erasedMirror = mTypes.erasure(typeMirror);
+        final String erasure = erasedMirror.toString();
+
+        return erasure.startsWith(JAVA_UTIL_LIST);
     }
 
     private boolean isEnum(TypeMirror mirror) {
@@ -242,5 +255,10 @@ class ParcelableDataParser {
     private boolean isSubtype(TypeMirror typeMirror, String toCheck) {
         final TypeElement typeElement = mElements.getTypeElement(toCheck);
         return mTypes.isAssignable(typeMirror, typeElement.asType());
+    }
+
+    private boolean shouldCallSuper(TypeElement typeElement) {
+        final TypeMirror superClass = typeElement.getSuperclass();
+        return isParcelableAnnotationPresent(superClass);
     }
 }

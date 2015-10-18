@@ -1,24 +1,75 @@
 package ru.noties.parcelable.creator;
 
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.List;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 
 import ru.noties.parcelable.ASTHelper;
 
 /**
  * Created by Dimitry Ivanov on 17.10.2015.
  */
-class StatementCreatorTypedList implements StatementCreator {
+class StatementCreatorTypedList extends StatementCreatorBase {
 
     @Override
     public List<JCTree.JCStatement> createReadFromParcel(ASTHelper astHelper, Element rootElement, JCTree.JCExpression parcel, String varName, boolean isArray) {
-        return List.nil();
+
+        // parcel.createTypedArrayList(Type.CREATOR)
+
+        final TreeMaker treeMaker = astHelper.getTreeMaker();
+
+        // here we have List<OUR_TYPE>
+        final Element fieldElement = astHelper.findFieldByName(rootElement, varName);
+        if (fieldElement == null) {
+            return List.nil();
+        }
+
+        final JCTree.JCExpression typeOfElement;
+        {
+            final DeclaredType declaredType = (DeclaredType) fieldElement.asType();
+            final TypeMirror ourType = declaredType.getTypeArguments().get(0);
+            final String typeString = ourType.toString();
+
+            final int lastDotIndex = typeString.lastIndexOf('.');
+
+            final String pkg = typeString.substring(0, lastDotIndex);
+            final String type = typeString.substring(lastDotIndex + 1);
+
+            typeOfElement = astHelper.getType(pkg, type);
+        }
+
+        final JCTree.JCExpression creator = treeMaker.Select(typeOfElement, astHelper.getName("CREATOR"));
+
+        final JCTree.JCStatement statement = treeMaker.Exec(
+                treeMaker.Assign(
+                        treeMaker.Ident(astHelper.getName(varName)),
+                        treeMaker.Apply(
+                                List.<JCTree.JCExpression>nil(),
+                                treeMaker.Select(parcel, astHelper.getName("createTypedArrayList")),
+                                List.of(creator)
+                        )
+                )
+        );
+
+        return List.of(statement);
     }
 
     @Override
     public List<JCTree.JCStatement> createWriteToParcel(ASTHelper astHelper, Element rootElement, JCTree.JCExpression parcel, JCTree.JCExpression flags, String varName, boolean isArray) {
-        return List.nil();
+        return super.createWriteToParcel(astHelper, rootElement, parcel, flags, varName, isArray);
+    }
+
+    @Override
+    protected String getReadFromParcelMethodCallName(boolean isArray) {
+        return null;
+    }
+
+    @Override
+    protected String getWriteToParcelMethodCallName(boolean isArray) {
+        return isArray ? null : "writeTypedList";
     }
 }

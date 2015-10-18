@@ -20,6 +20,9 @@ public enum ParcelableType {
 
     CHAR_SEQUENCE,
     BUNDLE,
-    TYPED_LIST
+    TYPED_LIST,
+
+    LIST,
+    OBJECT
 
 }

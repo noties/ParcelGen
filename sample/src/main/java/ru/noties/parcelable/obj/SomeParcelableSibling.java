@@ -5,6 +5,7 @@ import android.os.Bundle;
 import java.util.Arrays;
 import java.util.List;
 
+import ru.noties.parcelable.BundleUtils;
 import ru.noties.parcelable.ParcelGen;
 
 /**
@@ -48,7 +49,7 @@ public class SomeParcelableSibling extends SomeAnnotatedParcelable {
 
         if (typedList != null ? !typedList.equals(that.typedList) : that.typedList != null)
             return false;
-        if (bundle != null ? !bundle.equals(that.bundle) : that.bundle != null) return false;
+        if (bundle != null ? !BundleUtils.equals(bundle, that.bundle) : that.bundle != null) return false;
         if (charSequence != null ? !charSequence.equals(that.charSequence) : that.charSequence != null)
             return false;
         // Probably incorrect - comparing Object[] arrays with Arrays.equals
@@ -64,5 +65,15 @@ public class SomeParcelableSibling extends SomeAnnotatedParcelable {
         result = 31 * result + (charSequence != null ? charSequence.hashCode() : 0);
         result = 31 * result + (charSequenceArray != null ? Arrays.hashCode(charSequenceArray) : 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "SomeParcelableSibling{" +
+                "typedList=" + typedList +
+                ", bundle=" + bundle +
+                ", charSequence=" + charSequence +
+                ", charSequenceArray=" + Arrays.toString(charSequenceArray) +
+                '}';
     }
 }

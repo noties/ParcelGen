@@ -70,6 +70,12 @@ public class StatementCreatorFactory {
             case ENUM:
                 return new StatementCreatorEnum();
 
+            case LIST:
+                return new StatementCreatorList();
+
+            case OBJECT:
+                return new StatementCreatorObject();
+
             default:
                 throw new IllegalStateException("Unknown type: " + type);
         }
