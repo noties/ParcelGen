@@ -25,6 +25,7 @@ import ru.noties.parcelable.obj.SomeEnum;
 import ru.noties.parcelable.obj.SomeOtherAnnotatedParcelable;
 import ru.noties.parcelable.obj.SomeParcelable;
 import ru.noties.parcelable.obj.SomeParcelableSibling;
+import ru.noties.parcelable.obj.SomeParcelableSibling2;
 
 /**
  * Created by Dimitry Ivanov on 12.10.2015.
@@ -48,7 +49,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeByte((byte) 2)
                 .setSomeByteArray(new byte[]{3, 4, 1});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -56,7 +57,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeInt(33)
                 .setSomeIntArray(new int[]{11, 99, 101, 0, -19});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -64,7 +65,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeLong(4L)
                 .setSomeLongArray(new long[]{13, -7, Long.MAX_VALUE});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -72,7 +73,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeFloat(66.F)
                 .setSomeFloatArray(new float[]{33.3F, .0F, -16.F, 77.1F});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -80,7 +81,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeDouble(10.4D)
                 .setSomeDoubleArray(new double[]{12.D, .99D, 99.9999D, -100.D});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -88,7 +89,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeBool(true)
                 .setSomeBoolArray(new boolean[]{true, false, false, false, true});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -96,14 +97,14 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeString("someString it is")
                 .setSomeStringArray(new String[]{"one", "eleven", "fifty five", "zero", "HEllo!"});
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
     public void testEnums() {
         mParcelable
                 .setSomeEnum(SomeEnum.DUNNO);
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -111,7 +112,7 @@ public class ParcelGenTest extends TestCase {
         mParcelable
                 .setSomeEnum(SomeEnum.FALSE)
                 .setSomeOtherEnum(SomeEnum.TRUE);
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -123,7 +124,7 @@ public class ParcelGenTest extends TestCase {
                         new SomeParcelable().setSomeInt(-99),
                         new SomeParcelable().setSomeInt(19999)
                 });
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     @Test
@@ -135,7 +136,7 @@ public class ParcelGenTest extends TestCase {
                         new SomeOtherAnnotatedParcelable().setSomeLong(-8),
                         new SomeOtherAnnotatedParcelable().setSomeLong(Long.MIN_VALUE)
                 });
-        assertParcelable(mParcelable);
+        assertParcelable(mParcelable, false);
     }
 
     // this test is failing & I'm not sure why...
@@ -156,9 +157,9 @@ public class ParcelGenTest extends TestCase {
 
         final SomeParcelableSibling sibling = new SomeParcelableSibling()
                 .setCharSequence(single)
-                .setCharSequenceArray(new CharSequence[] { s1, s2 });
+                .setCharSequenceArray(new CharSequence[]{s1, s2});
 
-        assertParcelable(sibling);
+        assertParcelable(sibling, false);
     }
 
     @Test
@@ -174,20 +175,25 @@ public class ParcelGenTest extends TestCase {
         final SomeParcelableSibling sibling = new SomeParcelableSibling()
                 .setBundle(bundle);
 
-        assertParcelable(sibling);
+        assertParcelable(sibling, false);
     }
 
     @Test
     public void testTransient() {
-        throw new IllegalStateException("Not implemented");
+        final SomeParcelableSibling2 parcelable = new SomeParcelableSibling2()
+                .setSomeLong(33L);
+        assertParcelable(parcelable, true);
     }
 
     @Test
     public void testSuperCall() {
-        throw new IllegalStateException("Not implemented");
+        final SomeParcelableSibling2 parcelable = new SomeParcelableSibling2();
+        parcelable.setSomeBool(true);
+        parcelable.setSomeString("string");
+        assertParcelable(parcelable, false);
     }
 
-    private void assertParcelable(Object p) {
+    private void assertParcelable(Object p, boolean shouldFail) {
 
         final Parcel in = Parcel.obtain();
         ((Parcelable) p).writeToParcel(in, 0);
@@ -200,7 +206,15 @@ public class ParcelGenTest extends TestCase {
         final Object unparcelled = callCreator(p, out);
 
         try {
-            assertTrue(String.format("not equals, in: %s, out: %s", p, unparcelled), p.equals(unparcelled));
+            final boolean toCheck = p.equals(unparcelled);
+            final String messageStart = shouldFail ? "equals" : "not equals";
+            final String messagePattern = messageStart + ", in: %s, out: %s";
+            final String message = String.format(messagePattern, p, unparcelled);
+            if (shouldFail) {
+                assertFalse(message, toCheck);
+            } else {
+                assertTrue(message, toCheck);
+            }
         } finally {
             in.recycle();
             out.recycle();

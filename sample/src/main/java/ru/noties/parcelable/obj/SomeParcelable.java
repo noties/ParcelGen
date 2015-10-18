@@ -1,9 +1,7 @@
 package ru.noties.parcelable.obj;
 
-import android.os.*;
+import android.os.Parcel;
 import android.os.Parcelable;
-
-import java.util.Map;
 
 /**
  * Created by Dimitry Ivanov on 12.10.2015.
@@ -40,7 +38,6 @@ public class SomeParcelable implements Parcelable {
 
     protected SomeParcelable(Parcel in) {
         this.someInt = in.readInt();
-        Map<String, String> map = (java.util.Map<java.lang.String, java.lang.String>) in.readValue(java.util.Map.class.getClassLoader());
     }
 
     public static final Parcelable.Creator<SomeParcelable> CREATOR = new Parcelable.Creator<SomeParcelable>() {

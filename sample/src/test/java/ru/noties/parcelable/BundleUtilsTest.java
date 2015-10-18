@@ -73,6 +73,15 @@ public class BundleUtilsTest extends TestCase {
 //    }
 
     @Test
+    public void testBundleEquals2() {
+        mBundle.putString("string", "some string");
+        mBundle.putInt("int", 123);
+        mBundle.putLong("long", 999L);
+        mBundle.putFloat("asddd", .000001F);
+        assertBundle(mBundle);
+    }
+
+    @Test
     public void testNotEquals() {
         final Bundle left = new Bundle();
         left.putInt("int", 9);
