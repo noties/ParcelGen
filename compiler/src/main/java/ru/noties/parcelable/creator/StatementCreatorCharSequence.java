@@ -135,6 +135,72 @@ class StatementCreatorCharSequence implements StatementCreator {
 
     @Override
     public List<JCTree.JCStatement> createWriteToParcel(ASTHelper astHelper, Element rootElement, JCTree.JCExpression parcel, JCTree.JCExpression flags, String varName, boolean isArray) {
-        return List.nil();
+
+        final TreeMaker treeMaker = astHelper.getTreeMaker();
+
+        final Name itemName = astHelper.getName(varName);
+        final JCTree.JCExpression item = treeMaker.Ident(itemName);
+
+        final JCTree.JCExpression textUtils = astHelper.getType("android.text", "TextUtils");
+
+        if (!isArray) {
+            final JCTree.JCStatement writeToParcel = treeMaker.Exec(
+                    treeMaker.Apply(
+                            List.<JCTree.JCExpression>nil(),
+                            treeMaker.Select(textUtils, astHelper.getName("writeToParcel")),
+                            List.of(
+                                    item, parcel, flags
+                            )
+                    )
+            );
+            return List.of(writeToParcel);
+        }
+
+        // if csa == null -> write -1
+        // else iterate and write
+
+        final JCTree.JCStatement ifNull = treeMaker.Exec(
+                treeMaker.Apply(
+                        List.<JCTree.JCExpression>nil(),
+                        treeMaker.Select(parcel, astHelper.getName("writeInt")),
+                        List.of((JCTree.JCExpression) treeMaker.Literal(-1))
+                )
+        );
+
+        final Name loopVariableName = astHelper.getName("_cs");
+
+        final JCTree.JCVariableDecl loopVar = treeMaker.VarDef(
+                astHelper.getModifiers(),
+                loopVariableName,
+                astHelper.getType("java.lang", "CharSequence"),
+                null
+        );
+
+        final JCTree.JCStatement forLoop = treeMaker.ForeachLoop(
+                loopVar,
+                item,
+                treeMaker.Exec(
+                        treeMaker.Apply(
+                                List.<JCTree.JCExpression>nil(),
+                                treeMaker.Select(textUtils, astHelper.getName("writeToParcel")),
+                                List.of(
+                                        treeMaker.Ident(loopVariableName), parcel, flags
+                                )
+                        )
+                )
+        );
+
+        final JCTree.JCStatement ifNotNull = treeMaker.Block(
+                0,
+                List.of(forLoop)
+        );
+
+        final JCTree.JCStatement ifBlock = treeMaker.If(
+                astHelper.getEquals(item, astHelper.getNull()),
+                ifNull,
+                ifNotNull
+        );
+
+        return List.of(ifBlock);
     }
 }
