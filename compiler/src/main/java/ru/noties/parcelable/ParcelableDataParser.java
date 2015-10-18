@@ -28,6 +28,7 @@ class ParcelableDataParser {
     static final String JAVA_LANG_ENUM          = "java.lang.Enum";
     static final String JAVA_LANG_STRING        = "java.lang.String";
     static final String JAVA_UTIL_LIST          = "java.util.List";
+    static final String JAVA_UTIL_ARRAY_LIST    = "java.util.ArrayList";
 
     final ParcelableLogger mLogger;
     final Types mTypes;
@@ -231,7 +232,8 @@ class ParcelableDataParser {
         final TypeMirror erasedMirror = mTypes.erasure(typeMirror);
         final String erasure = erasedMirror.toString();
 
-        return erasure.startsWith(JAVA_UTIL_LIST);
+        return erasure.startsWith(JAVA_UTIL_LIST)
+                || erasure.startsWith(JAVA_UTIL_ARRAY_LIST);
     }
 
     private boolean isEnum(TypeMirror mirror) {

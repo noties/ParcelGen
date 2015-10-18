@@ -6,7 +6,6 @@ import com.sun.tools.javac.util.List;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeMirror;
 
 import ru.noties.parcelable.ASTHelper;
 
@@ -28,19 +27,7 @@ class StatementCreatorTypedList extends StatementCreatorBase {
             return List.nil();
         }
 
-        final JCTree.JCExpression typeOfElement;
-        {
-            final DeclaredType declaredType = (DeclaredType) fieldElement.asType();
-            final TypeMirror ourType = declaredType.getTypeArguments().get(0);
-            final String typeString = ourType.toString();
-
-            final int lastDotIndex = typeString.lastIndexOf('.');
-
-            final String pkg = typeString.substring(0, lastDotIndex);
-            final String type = typeString.substring(lastDotIndex + 1);
-
-            typeOfElement = astHelper.getType(pkg, type);
-        }
+        final JCTree.JCExpression typeOfElement = astHelper.getListTypeParameter((DeclaredType) fieldElement.asType());
 
         final JCTree.JCExpression creator = treeMaker.Select(typeOfElement, astHelper.getName("CREATOR"));
 

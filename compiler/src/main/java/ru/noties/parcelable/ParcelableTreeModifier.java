@@ -1,5 +1,6 @@
 package ru.noties.parcelable;
 
+import com.sun.source.tree.Tree;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
@@ -86,12 +87,13 @@ class ParcelableTreeModifier {
             super.visitClassDef(jcClassDecl);
 
             addImplements(jcClassDecl);
+            ensureEmptyConstructor(jcClassDecl);
             addParcelableConstructor(jcClassDecl);
             addDescribeContentsMethod(jcClassDecl);
             addCreator(jcClassDecl);
             addWriteToParcelMethod(jcClassDecl);
 
-            mLogger.log(Diagnostic.Kind.NOTE, "class; %s", jcClassDecl);
+//            mLogger.log(Diagnostic.Kind.NOTE, "class; %s", jcClassDecl);
         }
 
         private void addImplements(JCTree.JCClassDecl jcClassDecl) {
@@ -109,6 +111,50 @@ class ParcelableTreeModifier {
 
             // append to current statements
             jcClassDecl.implementing = jcClassDecl.getImplementsClause().append(mParcelableType);
+        }
+
+        private void ensureEmptyConstructor(JCTree.JCClassDecl jcClassDecl) {
+
+            JCTree.JCMethodDecl methodDecl;
+            List<JCTree.JCVariableDecl> params;
+
+            boolean isEmptyConstructorPresent = false;
+
+            for (JCTree member: jcClassDecl.defs) {
+
+                if (member.getKind() != Tree.Kind.METHOD) {
+                    continue;
+                }
+
+                methodDecl = (JCTree.JCMethodDecl) member;
+                if ("<init>".equals(methodDecl.getName().toString())) {
+                    // check for parameters
+                    params = methodDecl.getParameters();
+
+                    if (params == null
+                            || params.length() == 0) {
+                        isEmptyConstructorPresent = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isEmptyConstructorPresent) {
+                return;
+            }
+
+            final JCTree.JCMethodDecl emptyConstructor = mTreeMaker.MethodDef(
+                    mASTHelper.getModifiers(Modifier.PUBLIC),
+                    mASTHelper.getName("<init>"),
+                    null,
+                    List.<JCTree.JCTypeParameter>nil(),
+                    List.<JCTree.JCVariableDecl>nil(),
+                    List.<JCTree.JCExpression>nil(),
+                    mTreeMaker.Block(0L, List.<JCTree.JCStatement>nil()),
+                    null
+            );
+
+            jcClassDecl.defs = jcClassDecl.defs.append(emptyConstructor);
         }
 
         private void addParcelableConstructor(JCTree.JCClassDecl jcClassDecl) {

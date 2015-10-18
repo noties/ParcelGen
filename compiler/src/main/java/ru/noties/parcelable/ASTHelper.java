@@ -9,7 +9,9 @@ import com.sun.tools.javac.util.Names;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * Created by Dimitry Ivanov on 17.10.2015.
@@ -172,13 +174,13 @@ public class ASTHelper {
         return null;
     }
 
-    public JCTree.JCExpression getTypeFromElement(Element element, boolean isArray) {
+    public JCTree.JCExpression getTypeFromElement(Element element, boolean isArray, boolean isRaw) {
 
         if (element == null) {
             return null;
         }
 
-        final String typeString = element.asType().toString();
+        final String typeString = !isRaw ? element.asType().toString() : element.asType().toString().replaceAll("<.+>", "");
         final int lastIndex = typeString.lastIndexOf('.');
         if (lastIndex == -1) {
             return null;
@@ -189,5 +191,30 @@ public class ASTHelper {
         final String typeName = typeString.substring(lastIndex + 1, substringEnd);
 
         return getType(packageName, typeName);
+    }
+
+    public JCTree.JCExpression getListTypeParameter(DeclaredType declaredType) {
+
+        if (declaredType == null) {
+            return null;
+        }
+
+        final TypeMirror ourType = declaredType.getTypeArguments().get(0);
+        final String typeString = ourType.toString();
+
+        final int lastDotIndex = typeString.lastIndexOf('.');
+
+        final String pkg = typeString.substring(0, lastDotIndex);
+        final String type = typeString.substring(lastDotIndex + 1);
+
+        return getType(pkg, type);
+    }
+
+    public JCTree.JCExpression getClassLoaderExpression(JCTree.JCExpression type) {
+        return mTreeMaker.Apply(
+                List.<JCTree.JCExpression>nil(),
+                mTreeMaker.Select(mTreeMaker.Select(type, getName("class")), getName("getClassLoader")),
+                List.<JCTree.JCExpression>nil()
+        );
     }
 }

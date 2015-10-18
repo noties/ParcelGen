@@ -28,6 +28,7 @@ class StatementCreatorEnum implements StatementCreator {
 
         final JCTree.JCExpression enumTypeExpression = astHelper.getTypeFromElement(
                 astHelper.findFieldByName(rootElement, varName),
+                false,
                 false
         );
 

@@ -21,7 +21,7 @@ class StatementCreatorParcelable extends StatementCreatorBase {
     public List<JCTree.JCStatement> createReadFromParcel(ASTHelper astHelper, Element rootElement, JCTree.JCExpression parcel, String varName, boolean isArray) {
 
         final Element element = astHelper.findFieldByName(rootElement, varName);
-        final JCTree.JCExpression typeExpression = astHelper.getTypeFromElement(element, isArray);
+        final JCTree.JCExpression typeExpression = astHelper.getTypeFromElement(element, isArray, false);
 
         if (typeExpression == null) {
             return List.nil();
@@ -29,17 +29,7 @@ class StatementCreatorParcelable extends StatementCreatorBase {
 
         final TreeMaker treeMaker = astHelper.getTreeMaker();
 
-        final JCTree.JCExpression classLoader = treeMaker.Apply(
-                List.<JCTree.JCExpression>nil(),
-                treeMaker.Select(
-                        treeMaker.Select(
-                                typeExpression,
-                                astHelper.getName("class")
-                        ),
-                        astHelper.getName("getClassLoader")
-                ),
-                List.<JCTree.JCExpression>nil()
-        );
+        final JCTree.JCExpression classLoader = astHelper.getClassLoaderExpression(typeExpression);
 
         if (!isArray) {
 
